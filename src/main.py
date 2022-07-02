@@ -11,6 +11,7 @@ args = parser.parse_args()
 consul_host = args.consul.split(':')[0]
 consul_port = int(args.consul.split(':')[1])
 EPOCH_TIME = Summary('epoch_time', 'Time spent to change epoch')
+DROPPED_EPOCH = Summary('dropped_epoch', 'Dropped epoch')
 
 consul_client = consul.Consul(consul_host, consul_port)
 print(f'Consul connect to: {args.consul} ...')
@@ -27,15 +28,18 @@ epoch = load_current_epoch(consul_client)
 start_epoch = epoch
 start_http_server(80)
 epoch_index = None
+cycles = start_epoch
 
 with tqdm(initial=epoch) as pbar:
     while True:
+        cycles += 1
         epoch_index, resp = consul_client.kv.get('epoch', index=epoch_index)
         epoch = int(resp['Value'].decode()) if resp else 0
         pbar.update(1)
-        dropped = epoch-pbar.n
-        drop_percent = round(dropped/(pbar.n - start_epoch)*100, 4) if epoch - start_epoch > 0 else 0
-        pbar.desc = f"{dropped} dropped\t({drop_percent:4}%)\t{epoch}"
+        dropped = epoch - cycles
+        drop_pers = round(dropped / (cycles - start_epoch), 3) if cycles - start_epoch > 0 else 0
+        pbar.desc = f"{dropped} dropped\t({drop_pers}%)\t{epoch}"
         if pbar.n % 100 == 0:
+            DROPPED_EPOCH.observe(dropped)
             dropped = 0
-            pbar.n = epoch
+            cycles = epoch
