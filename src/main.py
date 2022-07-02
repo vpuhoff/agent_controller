@@ -13,8 +13,7 @@ consul_port = int(args.consul.split(':')[1])
 EPOCH_TIME = Summary('epoch_time', 'Time spent to change epoch')
 
 consul_client = consul.Consul(consul_host, consul_port)
-print(f'Consul connected to: {args.consul}')
-
+print(f'Consul connect to: {args.consul} ...')
 
 def load_current_epoch(consul_client):
     epoch_index, resp = consul_client.kv.get('epoch')
@@ -25,12 +24,18 @@ def load_current_epoch(consul_client):
 
 
 epoch = load_current_epoch(consul_client)
+start_epoch = epoch
 start_http_server(80)
 epoch_index = None
 
 with tqdm(initial=epoch) as pbar:
     while True:
         epoch_index, resp = consul_client.kv.get('epoch', index=epoch_index)
-        epoch = resp['Value']
+        epoch = int(resp['Value'].decode()) if resp else 0
         pbar.update(1)
-        pbar.desc = epoch.decode()
+        dropped = epoch-pbar.n
+        drop_percent = round(dropped/(epoch - start_epoch)*100, 4)
+        pbar.desc = f"{dropped} dropped\t({drop_percent:4}%)\t{epoch}"
+        if pbar.n % 100 == 0:
+            dropped = 0
+            pbar.n = epoch
