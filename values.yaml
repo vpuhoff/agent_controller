@@ -43,6 +43,7 @@ securityContext: {}
 service:
   type: ClusterIP
   port: 80
+  websocket: 8000
 
 ingress:
   enabled: false
@@ -75,7 +76,7 @@ resources: {}
 autoscaling:
   enabled: false
   minReplicas: 1
-  maxReplicas: 100
+  maxReplicas: 3
   targetCPUUtilizationPercentage: 80
   # targetMemoryUtilizationPercentage: 80
 

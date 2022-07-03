@@ -11,6 +11,9 @@ spec:
       targetPort: http
       protocol: TCP
       name: http
-  
+    - port: {{ .Values.service.websocket }}
+      targetPort: http
+      protocol: TCP
+      name: http
   selector:
     {{- include "agent-controller.selectorLabels" . | nindent 4 }}
